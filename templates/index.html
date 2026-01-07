@@ -3,66 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum AI Terminal</title>
+    <title>Quantum AI Terminal | Nifty & Bank Nifty</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #0a0c10; color: #fff; font-family: 'Inter', sans-serif; }
-        .glass-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1.5rem; }
-        .glow-text { text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+        body { background: #05070a; color: #fff; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .glass-card { 
+            background: rgba(255, 255, 255, 0.01); 
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+            backdrop-filter: blur(20px); 
+            border-radius: 1.5rem; 
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover { border-color: rgba(59, 130, 246, 0.5); background: rgba(255, 255, 255, 0.03); }
+        .glow-text { text-shadow: 0 0 15px rgba(59, 130, 246, 0.6); }
+        .status-dot { height: 8px; width: 8px; background-color: #22c55e; border-radius: 50%; display: inline-block; margin-right: 5px; box-shadow: 0 0 8px #22c55e; }
     </style>
 </head>
 <body class="p-4 md:p-10">
-    <div class="max-w-5xl mx-auto">
-        <header class="flex justify-between items-center mb-10">
-            <h1 class="text-2xl font-black italic text-blue-500 tracking-tighter">QUANTUM<span class="text-white">AI</span></h1>
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-center mb-12 border-b border-white/5 pb-6">
+            <div>
+                <h1 class="text-2xl font-black italic text-blue-500 tracking-tighter uppercase">Quantum<span class="text-white">AI</span></h1>
+                <p class="text-[10px] text-gray-500 tracking-[0.3em] font-bold">PREDICTION TERMINAL v4.0</p>
+            </div>
             <div class="text-right">
-                <span class="text-[10px] text-gray-500 uppercase">Live Pulse: {{ ts }}</span>
+                <div class="flex items-center justify-end">
+                    <span class="status-dot"></span>
+                    <span class="text-[10px] text-gray-400 uppercase font-bold">Live Pulse: {{ ts }}</span>
+                </div>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {% for m in [nifty, bank] %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {% for m in [n, b] %}
             <div class="glass-card p-6 md:p-8">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold">{{ m.symbol }}</h2>
-                    <span class="text-xs bg-white/5 px-3 py-1 rounded-full border border-white/10 font-mono">{{ m.signal }}</span>
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-xl font-bold tracking-tight">{{ m.symbol }}</h2>
+                    <span class="text-[10px] bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full border border-blue-500/20 font-black uppercase tracking-widest">
+                        {{ m.signal }}
+                    </span>
                 </div>
 
-                <div class="flex justify-between items-end mb-8">
+                <div class="flex justify-between items-end mb-10">
                     <div>
-                        <p class="text-[10px] text-gray-500 uppercase font-bold">Spot Price</p>
-                        <p class="text-4xl font-black">₹{{ m.current }}</p>
+                        <p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Spot Price</p>
+                        <p class="text-5xl font-black">₹{{ m.current }}</p>
                     </div>
                     <div class="text-right">
-                        <p class="text-[10px] text-blue-400 uppercase font-bold">AI Target</p>
-                        <p class="text-2xl font-bold glow-text">₹{{ m.predicted }}</p>
+                        <p class="text-[10px] text-blue-400 uppercase font-bold tracking-widest mb-1">AI Projection</p>
+                        <p class="text-3xl font-bold glow-text">₹{{ m.predicted }}</p>
                     </div>
                 </div>
 
-                <div class="space-y-2 mb-8">
-                    <div class="flex justify-between text-[10px] font-bold">
-                        <span class="text-green-400">UP: {{ m.up_prob }}%</span>
-                        <span class="text-red-400">DOWN: {{ m.down_prob }}%</span>
+                <div class="space-y-3 mb-10">
+                    <div class="flex justify-between text-[10px] font-black uppercase tracking-tighter">
+                        <span class="text-green-400">Bullish Momentum: {{ m.up_prob }}%</span>
+                        <span class="text-red-400">Bearish Pressure: {{ m.down_prob }}%</span>
                     </div>
                     <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden flex">
-                        <div class="bg-green-500 h-full" style="width: {{ m.up_prob }}%"></div>
-                        <div class="bg-red-500 h-full" style="width: {{ m.down_prob }}%"></div>
+                        <div class="bg-green-500 shadow-[0_0_12px_#22c55e] h-full transition-all duration-1000" style="width: {{ m.up_prob }}%"></div>
+                        <div class="bg-red-500 h-full transition-all duration-1000" style="width: {{ m.down_prob }}%"></div>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-white/5 p-3 rounded-xl">
-                        <p class="text-[9px] text-gray-500 uppercase">India VIX</p>
-                        <p class="font-bold text-orange-400">{{ m.vix }}</p>
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
+                        <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">India VIX (Risk)</p>
+                        <p class="text-xl font-bold text-orange-400">{{ m.vix }}</p>
                     </div>
-                    <div class="bg-white/5 p-3 rounded-xl">
-                        <p class="text-[9px] text-gray-500 uppercase">RSI (14)</p>
-                        <p class="font-bold text-blue-400">{{ m.rsi }}</p>
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
+                        <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">RSI Score (14)</p>
+                        <p class="text-xl font-bold text-blue-400">{{ m.rsi }}</p>
                     </div>
                 </div>
             </div>
             {% endfor %}
         </div>
+
+        <footer class="mt-16 text-center">
+            <p class="text-[9px] text-gray-600 uppercase tracking-[0.2em] leading-loose max-w-2xl mx-auto">
+                Algorithmic modeling based on 5-minute gated cycles. Market data provided via NSE live feed. Use for educational intelligence only.
+            </p>
+        </footer>
     </div>
 </body>
 </html>
