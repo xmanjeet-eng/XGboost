@@ -4,62 +4,64 @@ import pandas_ta as ta
 import numpy as np
 from flask import Flask, render_template
 from xgboost import XGBRegressor
-from datetime import datetime, timedelta
+from datetime import datetime
 
 app = Flask(__name__)
 
-def get_intraday_data(ticker):
-    # Fetch 5-minute interval data for precise intraday patterns
+def get_alpha_signal(ticker):
+    # Fetch 5-minute interval for intraday accuracy (last 5 days)
     df = yf.download(ticker, period='5d', interval='5m', multi_level_index=False)
-    df.columns = [str(col) for col in df.columns]
+    if df.empty: return None
     
-    # Advanced Alpha Indicators
+    # 1. TECHNICAL LAYER (Momentum & Trend)
     df['RSI'] = ta.rsi(df['Close'], length=14)
-    df['MACD'] = ta.macd(df['Close'])['MACD_12_26_9']
     df['VWAP'] = ta.vwap(df['High'], df['Low'], df['Close'], df['Volume'])
-    df['EMA_9'] = ta.ema(df['Close'], length=9)
-    df['ATR'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
+    df['EMA_20'] = ta.ema(df['Close'], length=20)
     
-    # Create Target: Next 15-min move
+    # 2. VOLATILITY LAYER (Fear Index Fusion)
+    vix = yf.download('^INDIAVIX', period='5d', interval='5m', multi_level_index=False)
+    df['VIX'] = vix['Close'].reindex(df.index, method='ffill')
+    
+    # 3. PREDICTION ENGINE (XGBoost)
+    # Goal: Predict price 15 minutes into the future
     df['Target'] = df['Close'].shift(-3) 
-    df.dropna(inplace=True)
+    features = ['Close', 'RSI', 'VIX', 'EMA_20']
     
-    features = ['Close', 'RSI', 'MACD', 'VWAP', 'EMA_9', 'ATR']
-    X = df[features][:-3]
-    y = df['Target'][:-3]
+    train_df = df.dropna()
+    X = train_df[features]
+    y = train_df['Target']
     
-    # XGBoost for high-speed prediction
-    model = XGBRegressor(n_estimators=100, learning_rate=0.05, max_depth=6)
+    model = XGBRegressor(n_estimators=100, learning_rate=0.08, max_depth=5)
     model.fit(X, y)
     
-    last_row = df[features].tail(1)
-    prediction = model.predict(last_row)[0]
-    current = df['Close'].iloc[-1]
+    # Generate Live Output
+    latest = df[features].tail(1)
+    prediction = model.predict(latest)[0]
+    curr = df['Close'].iloc[-1]
     
-    # Logic for Signals
-    diff = ((prediction - current) / current) * 100
-    signal = "NEUTRAL"
-    if diff > 0.15: signal = "STRONG BUY"
-    elif diff < -0.15: signal = "STRONG SELL"
+    # Probability Logic
+    diff = ((prediction - curr) / curr) * 100
+    prob_up = min(max(50 + (diff * 10), 10), 90) # Weighted probability
     
     return {
         "symbol": "NIFTY 50" if "NSEI" in ticker else "BANK NIFTY",
-        "current": round(current, 2),
-        "target": round(prediction, 2),
-        "signal": signal,
+        "current": f"{curr:,.2f}",
+        "predicted": f"{prediction:,.2f}",
+        "up_prob": round(prob_up, 1),
+        "down_prob": round(100 - prob_up, 1),
         "rsi": int(df['RSI'].iloc[-1]),
-        "vwap_status": "ABOVE" if current > df['VWAP'].iloc[-1] else "BELOW",
-        "change": round(diff, 2)
+        "vix": round(df['VIX'].iloc[-1], 2),
+        "signal": "BULLISH" if diff > 0.05 else "BEARISH" if diff < -0.05 else "NEUTRAL"
     }
 
 @app.route('/')
 def home():
     try:
-        nifty = get_intraday_data('^NSEI')
-        bnifty = get_intraday_data('^NSEBANK')
-        return render_template('index.html', n=nifty, b=bnifty, time=datetime.now().strftime('%H:%M:%S'))
+        nifty = get_alpha_signal('^NSEI')
+        bank = get_alpha_signal('^NSEBANK')
+        return render_template('index.html', nifty=nifty, bank=bank, ts=datetime.now().strftime('%H:%M:%S'))
     except Exception as e:
-        return f"System Error: {str(e)}"
+        return f"Terminal Error: {str(e)}"
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
