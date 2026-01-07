@@ -59,7 +59,7 @@ def home():
     try:
         nifty = get_alpha_signal('^NSEI')
         bank = get_alpha_signal('^NSEBANK')
-        return render_template('index.html', nifty=nifty, bank=bank, ts=datetime.now().strftime('%H:%M:%S'))
+        return render_template('index.html', n=nifty, b=bank, ts=datetime.now().strftime('%H:%M:%S'))
     except Exception as e:
         return f"Terminal Error: {str(e)}"
 
